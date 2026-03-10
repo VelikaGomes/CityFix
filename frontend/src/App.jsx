@@ -13,6 +13,8 @@ import AdminDashboard from './pages/AdminDashboard.jsx';
 import IssueDetails from './pages/IssueDetails.jsx';
 import MapView from './pages/MapView.jsx';
 import ViewIssues from './pages/ViewIssues.jsx';
+import Profile from './pages/Profile';
+import About from './pages/About';
 
 function App() {
   return (
@@ -29,6 +31,8 @@ function App() {
               <Route path="/map" element={<MapView />} />
               <Route path="/issues" element={<ViewIssues />} />
               <Route path="/issue/:id" element={<IssueDetails />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/about" element={<About />} />
               
               {/* Protected Routes - Require Login */}
               <Route path="/report" element={

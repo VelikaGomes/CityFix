@@ -1,3 +1,5 @@
+// Updated Navbar.jsx - Fix the Settings link
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -14,6 +16,7 @@ function Navbar() {
   const navLinks = [
     { path: "/", label: "Home", icon: "🏠" },
     { path: "/report", label: "Report Issue", icon: "📢" },
+    { path: "/about", label: "About", icon: "ℹ️" }, 
     ...(user?.role === 'admin' ? [{ path: "/admin", label: "Admin", icon: "⚙️" }] : []),
   ];
 
@@ -21,6 +24,20 @@ function Navbar() {
     logout();
     navigate('/');
     setShowUserMenu(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleSettingsClick = () => {
+    setShowUserMenu(false);
+    setIsMobileMenuOpen(false);
+    // Navigate to profile page - we'll use state to set the active tab to settings
+    navigate('/profile', { state: { activeTab: 'settings' } });
+  };
+
+  const handleProfileClick = () => {
+    setShowUserMenu(false);
+    setIsMobileMenuOpen(false);
+    navigate('/profile', { state: { activeTab: 'overview' } });
   };
 
   return (
@@ -115,35 +132,7 @@ function Navbar() {
         }}>
           {user ? (
             <>
-              <button style={{
-                background: "none",
-                border: "none",
-                fontSize: "1.2rem",
-                cursor: "pointer",
-                padding: "8px",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                position: "relative",
-                color: "#64748b",
-                transition: "background 0.2s ease",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-              >
-                <span>🔔</span>
-                <span style={{
-                  position: "absolute",
-                  top: "4px",
-                  right: "4px",
-                  width: "8px",
-                  height: "8px",
-                  background: "#ef4444",
-                  borderRadius: "50%",
-                  border: "2px solid white",
-                }} />
-              </button>
+              {/* Notification bell - commented out as in original */}
               
               <div 
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -178,7 +167,7 @@ function Navbar() {
                   fontWeight: "500",
                   color: "#0f172a",
                 }}>
-                  {user?.name || 'Admin'}
+                  {user?.name || 'User'}
                 </span>
                 <span style={{
                   fontSize: "0.8rem",
@@ -232,48 +221,69 @@ function Navbar() {
                   </div>
                   
                   {user?.role === 'admin' && (
-                    <Link to="/admin" style={{
-                      display: "block",
-                      padding: "12px 16px",
-                      textDecoration: "none",
-                      color: "#0f172a",
-                      fontSize: "0.9rem",
-                      transition: "background 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "white"}
-                    onClick={() => setShowUserMenu(false)}>
+                    <Link 
+                      to="/admin" 
+                      style={{
+                        display: "block",
+                        padding: "12px 16px",
+                        textDecoration: "none",
+                        color: "#0f172a",
+                        fontSize: "0.9rem",
+                        transition: "background 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "white"}
+                      onClick={() => setShowUserMenu(false)}
+                    >
                       ⚙️ Admin Dashboard
                     </Link>
                   )}
                   
-                  <Link to="/profile" style={{
-                    display: "block",
-                    padding: "12px 16px",
-                    textDecoration: "none",
-                    color: "#0f172a",
-                    fontSize: "0.9rem",
-                    transition: "background 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "white"}
-                  onClick={() => setShowUserMenu(false)}>
-                    👤 My Profile
-                  </Link>
+                  <button
+                    onClick={handleProfileClick}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "none",
+                      background: "none",
+                      textAlign: "left",
+                      fontSize: "0.9rem",
+                      color: "#0f172a",
+                      cursor: "pointer",
+                      transition: "background 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                  >
+                    <span>👤</span>
+                    <span>My Profile</span>
+                  </button>
                   
-                  <Link to="/settings" style={{
-                    display: "block",
-                    padding: "12px 16px",
-                    textDecoration: "none",
-                    color: "#0f172a",
-                    fontSize: "0.9rem",
-                    transition: "background 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "white"}
-                  onClick={() => setShowUserMenu(false)}>
-                    ⚙️ Settings
-                  </Link>
+                  <button
+                    onClick={handleSettingsClick}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "none",
+                      background: "none",
+                      textAlign: "left",
+                      fontSize: "0.9rem",
+                      color: "#0f172a",
+                      cursor: "pointer",
+                      transition: "background 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                  >
+                    <span>⚙️</span>
+                    <span>Settings</span>
+                  </button>
                   
                   <div style={{
                     borderTop: "1px solid #f1f5f9",
@@ -461,6 +471,50 @@ function Navbar() {
                   }}>ADMIN</span>
                 )}
               </div>
+
+              <button
+                onClick={handleProfileClick}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  padding: "14px 16px",
+                  border: "none",
+                  background: "transparent",
+                  textAlign: "left",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "#0f172a",
+                  cursor: "pointer",
+                  borderRadius: "12px",
+                }}
+              >
+                <span style={{ fontSize: "1.2rem" }}>👤</span>
+                <span>My Profile</span>
+              </button>
+
+              <button
+                onClick={handleSettingsClick}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  padding: "14px 16px",
+                  border: "none",
+                  background: "transparent",
+                  textAlign: "left",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "#0f172a",
+                  cursor: "pointer",
+                  borderRadius: "12px",
+                }}
+              >
+                <span style={{ fontSize: "1.2rem" }}>⚙️</span>
+                <span>Settings</span>
+              </button>
               
               <button
                 onClick={() => {
@@ -547,11 +601,11 @@ function Navbar() {
           }
 
           @media (max-width: 768px) {
-            .desktop-nav {
+            div[style*="gap: 8px"][style*="background: #f8fafc"] {
               display: none;
             }
-            .mobile-menu-button {
-              display: block;
+            button[style*="display: none"] {
+              display: block !important;
             }
           }
         `}
