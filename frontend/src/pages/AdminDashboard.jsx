@@ -2,10 +2,13 @@ import { useState } from "react";
 import { useIssues } from '../context/IssueContext';
 
 function AdminDashboard() {
-  const { issues, updateIssue, refreshIssues } = useIssues();
+  const { issues, updateIssue, deleteIssue, refreshIssues } = useIssues();
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIssue, setSelectedIssue] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [issueToDelete, setIssueToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const statusColors = {
     "Pending": { bg: "#fef3c7", text: "#92400e", border: "#f59e0b" },
@@ -38,9 +41,36 @@ function AdminDashboard() {
   const handleStatusUpdate = async (issueId, newStatus) => {
     const result = await updateIssue(issueId, { status: newStatus });
     if (result.success) {
-      // Optionally show success message
       console.log('Status updated successfully');
     }
+  };
+
+  const handleDeleteClick = (issue) => {
+    setIssueToDelete(issue);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!issueToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      const result = await deleteIssue(issueToDelete.id);
+      if (result.success) {
+        setShowDeleteModal(false);
+        setIssueToDelete(null);
+        await refreshIssues(); // Refresh the issues list
+      }
+    } catch (error) {
+      console.error('Error deleting issue:', error);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setIssueToDelete(null);
   };
 
   // Sort issues by date (newest first)
@@ -298,7 +328,7 @@ function AdminDashboard() {
                       <div>
                         <div style={{ fontWeight: "500", color: "#0f172a" }}>{issue.reportedBy || 'Anonymous'}</div>
                         <div style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
-                          {new Date(issue.date).toLocaleDateString()}
+                          {issue.date ? new Date(issue.date).toLocaleDateString() : 'N/A'}
                         </div>
                       </div>
                     </td>
@@ -346,20 +376,58 @@ function AdminDashboard() {
                       </select>
                     </td>
                     <td style={{ padding: "16px 20px" }}>
-                      <button
-                        onClick={() => setSelectedIssue(issue)}
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "10px",
-                          border: "1px solid #e2e8f0",
-                          background: "white",
-                          fontSize: "1.1rem",
-                          cursor: "pointer",
-                        }}
-                      >
-                        👁️
-                      </button>
+                      <div style={{
+                        display: "flex",
+                        gap: "8px",
+                      }}>
+                        <button
+                          onClick={() => setSelectedIssue(issue)}
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "10px",
+                            border: "1px solid #e2e8f0",
+                            background: "white",
+                            fontSize: "1.1rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.2s ease",
+                          }}
+                          title="View Details"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(issue)}
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "10px",
+                            border: "1px solid #fee2e2",
+                            background: "#fee2e2",
+                            color: "#b91c1c",
+                            fontSize: "1.1rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.2s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#fecaca";
+                            e.currentTarget.style.borderColor = "#ef4444";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#fee2e2";
+                            e.currentTarget.style.borderColor = "#fee2e2";
+                          }}
+                          title="Delete Issue"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -391,6 +459,94 @@ function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+        }} onClick={handleDeleteCancel}>
+          <div style={{
+            background: "white",
+            borderRadius: "24px",
+            width: "90%",
+            maxWidth: "400px",
+            padding: "32px",
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              textAlign: "center",
+              marginBottom: "24px",
+            }}>
+              <span style={{
+                fontSize: "3rem",
+                display: "block",
+                marginBottom: "16px",
+              }}>⚠️</span>
+              <h2 style={{
+                fontSize: "1.5rem",
+                color: "#0f172a",
+                margin: "0 0 8px 0",
+              }}>Delete Issue</h2>
+              <p style={{
+                color: "#64748b",
+                margin: 0,
+              }}>
+                Are you sure you want to delete "{issueToDelete?.title}"? This action cannot be undone.
+              </p>
+            </div>
+            
+            <div style={{
+              display: "flex",
+              gap: "12px",
+            }}>
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deleteLoading}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "white",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  fontSize: "0.95rem",
+                  fontWeight: "500",
+                  color: "#64748b",
+                  cursor: deleteLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteLoading}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "#ef4444",
+                  border: "none",
+                  borderRadius: "12px",
+                  fontSize: "0.95rem",
+                  fontWeight: "500",
+                  color: "white",
+                  cursor: deleteLoading ? "not-allowed" : "pointer",
+                  opacity: deleteLoading ? 0.7 : 1,
+                }}
+              >
+                {deleteLoading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Issue Details Modal */}
       {selectedIssue && (
