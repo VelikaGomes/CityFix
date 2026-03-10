@@ -1,149 +1,121 @@
 function IssueCard({ issue }) {
-  const getStatusColor = (status) => {
-    const colors = {
-      "Pending": { bg: "#fff7e6", text: "#b45b0f", border: "#ffd9a3" },
-      "In Progress": { bg: "#e6f3ff", text: "#0066cc", border: "#b8d9ff" },
-      "Resolved": { bg: "#e6ffe6", text: "#1f7b1f", border: "#b8e6b8" },
+  const getStatusStyle = (status) => {
+    const styles = {
+      "Pending": {
+        dot: "#f59e0b",
+        bg: "#fef3c7",
+        text: "#92400e",
+        label: "Pending"
+      },
+      "In Progress": {
+        dot: "#3b82f6",
+        bg: "#dbeafe",
+        text: "#1e40af",
+        label: "In Progress"
+      },
+      "Resolved": {
+        dot: "#10b981",
+        bg: "#d1fae5",
+        text: "#065f46",
+        label: "Resolved"
+      }
     };
-    return colors[status] || { bg: "#f0f0f0", text: "#333", border: "#ccc" };
+    return styles[status] || styles["Pending"];
   };
 
-  const statusStyle = getStatusColor(issue.status);
+  const status = getStatusStyle(issue.status);
 
   return (
     <div
       style={{
-        border: "none",
-        padding: "24px",
-        margin: "16px",
-        borderRadius: "16px",
-        background: "#ffffff",
-        boxShadow: "0 10px 30px -5px rgba(0,0,0,0.08), 0 5px 15px -5px rgba(0,0,0,0.06)",
-        transition: "all 0.3s ease",
+        background: "white",
+        borderRadius: "20px",
+        padding: "20px",
+        margin: "12px",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+        border: "1px solid #f1f5f9",
+        transition: "all 0.2s ease",
         cursor: "pointer",
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        position: "relative",
-        overflow: "hidden",
+        fontFamily: "system-ui, -apple-system, sans-serif",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-4px)";
-        e.currentTarget.style.boxShadow = "0 20px 40px -10px rgba(0,0,0,0.15), 0 8px 20px -8px rgba(0,0,0,0.1)";
+        e.currentTarget.style.transform = "scale(1.02)";
+        e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)";
+        e.currentTarget.style.borderColor = "#e2e8f0";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 10px 30px -5px rgba(0,0,0,0.08), 0 5px 15px -5px rgba(0,0,0,0.06)";
+        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)";
+        e.currentTarget.style.borderColor = "#f1f5f9";
       }}
     >
-      {/* Decorative accent line */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "4px",
-          background: `linear-gradient(90deg, ${statusStyle.text}40, ${statusStyle.text})`,
-        }}
-      />
-
-      {/* Header section with title and status */}
-      <div
-        style={{
+      {/* Header with status indicator */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "16px"
+      }}>
+        <div style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: "16px",
-        }}
-      >
-        <h3
-          style={{
+          alignItems: "center",
+          gap: "12px",
+          flex: 1
+        }}>
+          <div style={{
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            background: status.dot,
+          }} />
+          <h3 style={{
             margin: 0,
-            fontSize: "1.35rem",
+            fontSize: "1.1rem",
             fontWeight: "600",
-            color: "#1a1f2e",
-            letterSpacing: "-0.02em",
+            color: "#0f172a",
             lineHeight: "1.4",
-            flex: 1,
-            paddingRight: "16px",
-          }}
-        >
-          {issue.title}
-        </h3>
-
-        {/* Status badge */}
-        <span
-          style={{
-            padding: "6px 14px",
-            borderRadius: "40px",
-            fontSize: "0.8rem",
-            fontWeight: "600",
-            background: statusStyle.bg,
-            color: statusStyle.text,
-            border: `1px solid ${statusStyle.border}`,
-            whiteSpace: "nowrap",
-            textTransform: "uppercase",
-            letterSpacing: "0.02em",
-          }}
-        >
-          {issue.status}
+          }}>
+            {issue.title}
+          </h3>
+        </div>
+        
+        {/* Status badge - minimal */}
+        <span style={{
+          fontSize: "0.75rem",
+          fontWeight: "500",
+          color: status.text,
+          background: status.bg,
+          padding: "4px 10px",
+          borderRadius: "30px",
+          letterSpacing: "0.3px",
+        }}>
+          {status.label}
         </span>
       </div>
 
-      {/* Description */}
-      <p
-        style={{
-          margin: "0 0 20px 0",
-          fontSize: "0.95rem",
-          lineHeight: "1.6",
-          color: "#4a5568",
-        }}
-      >
+      {/* Description - clean and readable */}
+      <p style={{
+        margin: "0 0 16px 0",
+        fontSize: "0.9rem",
+        lineHeight: "1.5",
+        color: "#475569",
+      }}>
         {issue.description}
       </p>
 
-      {/* Location with icon */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "12px 0 0 0",
-          borderTop: "1px solid #edf2f7",
-          color: "#718096",
-          fontSize: "0.9rem",
-        }}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ opacity: 0.6 }}
-        >
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-        <span style={{ fontWeight: "500" }}>{issue.location}</span>
+      {/* Location - simple and clear */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        paddingTop: "12px",
+        borderTop: "1px dashed #e2e8f0",
+        fontSize: "0.85rem",
+        color: "#64748b",
+      }}>
+        <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>📍</span>
+        <span style={{ fontWeight: "450" }}>{issue.location}</span>
       </div>
-
-      {/* Subtle hover effect overlay */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          borderRadius: "16px",
-          pointerEvents: "none",
-          transition: "box-shadow 0.3s ease",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)",
-        }}
-      />
     </div>
   );
 }

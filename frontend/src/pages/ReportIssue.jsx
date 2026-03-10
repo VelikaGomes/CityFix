@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { createIssue } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { useIssues } from "../context/IssueContext";
+import { useAuth } from "../context/AuthContext";
 
 function ReportIssue() {
   const navigate = useNavigate();
+  const { addIssue } = useIssues();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     title: "",
@@ -12,8 +15,8 @@ function ReportIssue() {
     category: "",
     priority: "Medium",
     images: [],
-    contactName: "",
-    contactEmail: "",
+    contactName: user?.name || "",
+    contactEmail: user?.email || "",
     contactPhone: "",
   });
   
@@ -23,26 +26,25 @@ function ReportIssue() {
   const [errors, setErrors] = useState({});
 
   const categories = [
-    "Infrastructure",
-    "Sanitation",
-    "Street Lighting",
-    "Road Maintenance",
-    "Graffiti",
-    "Noise Complaint",
-    "Park Maintenance",
-    "Other"
+    { value: "Infrastructure", icon: "🏗️" },
+    { value: "Sanitation", icon: "🗑️" },
+    { value: "Street Lighting", icon: "💡" },
+    { value: "Road Maintenance", icon: "🛣️" },
+    { value: "Graffiti", icon: "🎨" },
+    { value: "Noise Complaint", icon: "🔊" },
+    { value: "Park Maintenance", icon: "🌳" },
+    { value: "Other", icon: "📌" }
   ];
 
   const priorities = [
-    { value: "Low", label: "Low", color: "#10b981" },
-    { value: "Medium", label: "Medium", color: "#f59e0b" },
-    { value: "High", label: "High", color: "#ef4444" }
+    { value: "Low", label: "Low", color: "#10b981", icon: "🟢" },
+    { value: "Medium", label: "Medium", color: "#f59e0b", icon: "🟡" },
+    { value: "High", label: "High", color: "#ef4444", icon: "🔴" }
   ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -50,10 +52,9 @@ function ReportIssue() {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const newImages = [...formData.images, ...files].slice(0, 5); // Max 5 images
+    const newImages = [...formData.images, ...files].slice(0, 5);
     setFormData(prev => ({ ...prev, images: newImages }));
 
-    // Create preview URLs
     const previews = newImages.map(file => URL.createObjectURL(file));
     setImagePreviews(previews);
   };
@@ -100,24 +101,37 @@ function ReportIssue() {
     setLoading(true);
 
     try {
-      // In a real app, you'd upload images first and get URLs
+      // Create the issue data object
       const issueData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        category: formData.category,
+        priority: formData.priority,
+        reportedBy: formData.contactName || user?.name || 'Anonymous',
+        contactEmail: formData.contactEmail || user?.email,
+        contactPhone: formData.contactPhone,
+        images: imagePreviews, // In real app, you'd upload these to server
         status: "Pending",
-        date: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
         votes: 0,
-        // imageUrls: uploadedImageUrls, // You'd get these from your image upload service
+        comments: []
       };
 
-      await createIssue(issueData);
+      // Use the addIssue function from context
+      const result = await addIssue(issueData);
       
-      // Show success message and redirect
-      navigate("/", { 
-        state: { 
-          success: true, 
-          message: "Issue reported successfully! Thank you for making your community better." 
-        } 
-      });
+      if (result.success) {
+        // Navigate to home with success message
+        navigate("/", { 
+          state: { 
+            success: true, 
+            message: "Issue reported successfully! Thank you for making your community better." 
+          } 
+        });
+      } else {
+        setErrors({ submit: result.error || "Failed to report issue. Please try again." });
+      }
 
     } catch (error) {
       console.error("Error reporting issue:", error);
@@ -128,35 +142,101 @@ function ReportIssue() {
   };
 
   const steps = [
-    { number: 1, label: "Issue Details" },
-    { number: 2, label: "Location" },
-    { number: 3, label: "Contact Info" },
+    { number: 1, label: "Issue Details", icon: "📋" },
+    { number: 2, label: "Location", icon: "📍" },
+    { number: 3, label: "Contact", icon: "📞" },
   ];
 
   return (
-    <div className="report-issue-container">
+    <div style={{
+      maxWidth: "800px",
+      margin: "0 auto",
+      padding: "40px 24px",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      background: "#f8fafc",
+      minHeight: "100vh",
+    }}>
       {/* Header */}
-      <div className="report-header">
-        <h1 className="report-title">
-          <span className="gradient-text">Report an Issue</span>
+      <div style={{
+        textAlign: "center",
+        marginBottom: "40px",
+      }}>
+        <h1 style={{
+          fontSize: "2.5rem",
+          fontWeight: "700",
+          margin: "0 0 12px 0",
+          background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}>
+          Report an Issue
         </h1>
-        <p className="report-subtitle">
-          Help improve your community by reporting issues you've noticed. 
+        <p style={{
+          fontSize: "1.1rem",
+          color: "#64748b",
+          maxWidth: "600px",
+          margin: "0 auto",
+          lineHeight: "1.6",
+        }}>
+          Help improve your community by reporting issues you've noticed.
           Our team will review and address them promptly.
         </p>
       </div>
 
       {/* Progress Steps */}
-      <div className="progress-steps">
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: "40px",
+        position: "relative",
+      }}>
+        {/* Progress Line */}
+        <div style={{
+          position: "absolute",
+          top: "24px",
+          left: "0",
+          right: "0",
+          height: "2px",
+          background: "#e2e8f0",
+          zIndex: 1,
+        }}>
+          <div style={{
+            height: "100%",
+            width: `${((currentStep - 1) / 2) * 100}%`,
+            background: "linear-gradient(90deg, #3b82f6, #8b5cf6)",
+            transition: "width 0.3s ease",
+          }} />
+        </div>
+
         {steps.map((step) => (
-          <div key={step.number} className="step-item">
-            <div 
-              className={`step-circle ${currentStep >= step.number ? 'active' : ''} 
-                ${currentStep > step.number ? 'completed' : ''}`}
-            >
-              {currentStep > step.number ? '✓' : step.number}
+          <div key={step.number} style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            position: "relative",
+            zIndex: 2,
+          }}>
+            <div style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%",
+              background: currentStep >= step.number ? "linear-gradient(135deg, #3b82f6, #8b5cf6)" : "white",
+              border: currentStep >= step.number ? "none" : "2px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.2rem",
+              color: currentStep >= step.number ? "white" : "#94a3b8",
+              marginBottom: "8px",
+              transition: "all 0.3s ease",
+            }}>
+              {currentStep > step.number ? "✓" : step.icon}
             </div>
-            <span className={`step-label ${currentStep >= step.number ? 'active' : ''}`}>
+            <span style={{
+              fontSize: "0.9rem",
+              fontWeight: "500",
+              color: currentStep >= step.number ? "#0f172a" : "#94a3b8",
+            }}>
               {step.label}
             </span>
           </div>
@@ -164,126 +244,292 @@ function ReportIssue() {
       </div>
 
       {/* Main Form */}
-      <div className="report-form-card">
+      <div style={{
+        background: "white",
+        borderRadius: "32px",
+        padding: "40px",
+        boxShadow: "0 20px 40px -12px rgba(0,0,0,0.1)",
+        border: "1px solid #f1f5f9",
+      }}>
         <form onSubmit={handleSubmit}>
           {/* Step 1: Issue Details */}
           {currentStep === 1 && (
-            <div className="form-step fade-in">
-              <h3 className="step-title">Tell us about the issue</h3>
+            <div style={{
+              animation: "fadeIn 0.3s ease",
+            }}>
+              <h3 style={{
+                fontSize: "1.3rem",
+                fontWeight: "600",
+                color: "#0f172a",
+                margin: "0 0 24px 0",
+              }}>Tell us about the issue</h3>
               
               {/* Title */}
-              <div className="form-group">
-                <label htmlFor="title">
-                  Issue Title <span className="required">*</span>
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>
+                  Issue Title <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <input
                   type="text"
-                  id="title"
                   name="title"
-                  className={`form-input ${errors.title ? 'error' : ''}`}
-                  placeholder="e.g., Broken street light, Pothole on Main St"
                   value={formData.title}
                   onChange={handleInputChange}
+                  placeholder="e.g., Broken street light, Pothole on Main St"
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    border: `1px solid ${errors.title ? "#ef4444" : "#e2e8f0"}`,
+                    borderRadius: "16px",
+                    fontSize: "1rem",
+                    outline: "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                  onBlur={(e) => e.target.style.borderColor = errors.title ? "#ef4444" : "#e2e8f0"}
                 />
-                {errors.title && <span className="error-message">{errors.title}</span>}
+                {errors.title && (
+                  <span style={{
+                    fontSize: "0.85rem",
+                    color: "#ef4444",
+                    marginTop: "4px",
+                    display: "block",
+                  }}>{errors.title}</span>
+                )}
               </div>
 
               {/* Category */}
-              <div className="form-group">
-                <label htmlFor="category">
-                  Category <span className="required">*</span>
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>
+                  Category <span style={{ color: "#ef4444" }}>*</span>
                 </label>
-                <select
-                  id="category"
-                  name="category"
-                  className={`form-select ${errors.category ? 'error' : ''}`}
-                  value={formData.category}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select a category</option>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                  gap: "8px",
+                }}>
                   {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, category: cat.value }));
+                        if (errors.category) setErrors(prev => ({ ...prev, category: null }));
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "10px 12px",
+                        background: formData.category === cat.value ? "#3b82f620" : "#f8fafc",
+                        border: `1px solid ${formData.category === cat.value ? "#3b82f6" : "#e2e8f0"}`,
+                        borderRadius: "40px",
+                        fontSize: "0.9rem",
+                        color: formData.category === cat.value ? "#1e40af" : "#475569",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.value}</span>
+                    </button>
                   ))}
-                </select>
-                {errors.category && <span className="error-message">{errors.category}</span>}
+                </div>
+                {errors.category && (
+                  <span style={{
+                    fontSize: "0.85rem",
+                    color: "#ef4444",
+                    marginTop: "4px",
+                    display: "block",
+                  }}>{errors.category}</span>
+                )}
               </div>
 
               {/* Priority */}
-              <div className="form-group">
-                <label>Priority Level</label>
-                <div className="priority-options">
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>Priority Level</label>
+                <div style={{
+                  display: "flex",
+                  gap: "12px",
+                }}>
                   {priorities.map(p => (
-                    <label key={p.value} className="priority-option">
-                      <input
-                        type="radio"
-                        name="priority"
-                        value={p.value}
-                        checked={formData.priority === p.value}
-                        onChange={handleInputChange}
-                      />
-                      <span 
-                        className="priority-badge-select"
-                        style={{ 
-                          backgroundColor: p.value === formData.priority ? p.color + '20' : '#f1f5f9',
-                          borderColor: p.value === formData.priority ? p.color : '#e2e8f0',
-                          color: p.value === formData.priority ? p.color : '#64748b'
-                        }}
-                      >
-                        {p.label}
-                      </span>
-                    </label>
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, priority: p.value }))}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        padding: "12px",
+                        background: formData.priority === p.value ? `${p.color}20` : "#f8fafc",
+                        border: `1px solid ${formData.priority === p.value ? p.color : "#e2e8f0"}`,
+                        borderRadius: "40px",
+                        fontSize: "0.95rem",
+                        color: formData.priority === p.value ? p.color : "#64748b",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <span>{p.icon}</span>
+                      <span>{p.label}</span>
+                    </button>
                   ))}
                 </div>
               </div>
 
               {/* Description */}
-              <div className="form-group">
-                <label htmlFor="description">
-                  Description <span className="required">*</span>
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>
+                  Description <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <textarea
-                  id="description"
                   name="description"
-                  className={`form-textarea ${errors.description ? 'error' : ''}`}
-                  placeholder="Please provide details about the issue... (e.g., when you noticed it, severity, any safety concerns)"
-                  rows="5"
                   value={formData.description}
                   onChange={handleInputChange}
+                  placeholder="Please provide details about the issue... (e.g., when you noticed it, severity, any safety concerns)"
+                  rows="5"
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    border: `1px solid ${errors.description ? "#ef4444" : "#e2e8f0"}`,
+                    borderRadius: "16px",
+                    fontSize: "1rem",
+                    outline: "none",
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                  onBlur={(e) => e.target.style.borderColor = errors.description ? "#ef4444" : "#e2e8f0"}
                 />
-                {errors.description && <span className="error-message">{errors.description}</span>}
+                {errors.description && (
+                  <span style={{
+                    fontSize: "0.85rem",
+                    color: "#ef4444",
+                    marginTop: "4px",
+                    display: "block",
+                  }}>{errors.description}</span>
+                )}
               </div>
 
               {/* Image Upload */}
-              <div className="form-group">
-                <label>Upload Photos (Optional, max 5)</label>
-                <div className="image-upload-area">
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>Upload Photos (Optional, max 5)</label>
+                
+                <div style={{
+                  border: "2px dashed #e2e8f0",
+                  borderRadius: "20px",
+                  padding: "32px",
+                  textAlign: "center",
+                  background: "#f8fafc",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = "#e2e8f0"}>
                   <input
                     type="file"
-                    id="images"
                     accept="image/*"
                     multiple
                     onChange={handleImageUpload}
-                    className="file-input"
+                    style={{ display: "none" }}
+                    id="image-upload"
                   />
-                  <label htmlFor="images" className="upload-label">
-                    <div className="upload-icon">📸</div>
-                    <div>
-                      <p className="upload-text">Click to upload photos</p>
-                      <p className="upload-hint">or drag and drop</p>
-                    </div>
+                  <label htmlFor="image-upload" style={{ cursor: "pointer" }}>
+                    <span style={{
+                      fontSize: "3rem",
+                      display: "block",
+                      marginBottom: "12px",
+                    }}>📸</span>
+                    <p style={{
+                      fontSize: "1rem",
+                      color: "#0f172a",
+                      margin: "0 0 4px 0",
+                      fontWeight: "500",
+                    }}>Click to upload photos</p>
+                    <p style={{
+                      fontSize: "0.85rem",
+                      color: "#94a3b8",
+                      margin: 0,
+                    }}>or drag and drop</p>
                   </label>
                 </div>
 
                 {/* Image Previews */}
                 {imagePreviews.length > 0 && (
-                  <div className="image-previews">
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: "12px",
+                    marginTop: "20px",
+                  }}>
                     {imagePreviews.map((preview, index) => (
-                      <div key={index} className="preview-item">
-                        <img src={preview} alt={`Preview ${index + 1}`} />
-                        <button 
-                          type="button" 
-                          className="remove-image"
+                      <div key={index} style={{
+                        position: "relative",
+                        aspectRatio: "1",
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                      }}>
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                        <button
+                          type="button"
                           onClick={() => removeImage(index)}
+                          style={{
+                            position: "absolute",
+                            top: "4px",
+                            right: "4px",
+                            width: "24px",
+                            height: "24px",
+                            borderRadius: "50%",
+                            background: "rgba(0,0,0,0.5)",
+                            border: "none",
+                            color: "white",
+                            fontSize: "1rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                         >
                           ×
                         </button>
@@ -297,35 +543,86 @@ function ReportIssue() {
 
           {/* Step 2: Location */}
           {currentStep === 2 && (
-            <div className="form-step fade-in">
-              <h3 className="step-title">Where is this issue located?</h3>
+            <div style={{
+              animation: "fadeIn 0.3s ease",
+            }}>
+              <h3 style={{
+                fontSize: "1.3rem",
+                fontWeight: "600",
+                color: "#0f172a",
+                margin: "0 0 24px 0",
+              }}>Where is this issue located?</h3>
               
               {/* Location Input */}
-              <div className="form-group">
-                <label htmlFor="location">
-                  Location <span className="required">*</span>
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>
+                  Location <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <input
                   type="text"
-                  id="location"
                   name="location"
-                  className={`form-input ${errors.location ? 'error' : ''}`}
-                  placeholder="e.g., 123 Main Street, or intersection of Oak & 5th"
                   value={formData.location}
                   onChange={handleInputChange}
+                  placeholder="e.g., 123 Main Street, or intersection of Oak & 5th"
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    border: `1px solid ${errors.location ? "#ef4444" : "#e2e8f0"}`,
+                    borderRadius: "16px",
+                    fontSize: "1rem",
+                    outline: "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                  onBlur={(e) => e.target.style.borderColor = errors.location ? "#ef4444" : "#e2e8f0"}
                 />
-                {errors.location && <span className="error-message">{errors.location}</span>}
+                {errors.location && (
+                  <span style={{
+                    fontSize: "0.85rem",
+                    color: "#ef4444",
+                    marginTop: "4px",
+                    display: "block",
+                  }}>{errors.location}</span>
+                )}
               </div>
 
               {/* Map Placeholder */}
-              <div className="map-placeholder">
-                <div className="map-icon">🗺️</div>
-                <p>Click to add location on map (coming soon)</p>
+              <div style={{
+                background: "linear-gradient(135deg, #667eea10, #764ba210)",
+                borderRadius: "20px",
+                padding: "40px",
+                textAlign: "center",
+                marginBottom: "20px",
+              }}>
+                <span style={{
+                  fontSize: "3rem",
+                  display: "block",
+                  marginBottom: "12px",
+                }}>🗺️</span>
+                <p style={{
+                  color: "#475569",
+                  margin: 0,
+                }}>Click to add location on map (coming soon)</p>
               </div>
 
-              <div className="location-tip">
-                <span className="tip-icon">💡</span>
-                <span className="tip-text">
+              {/* Tip */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "12px 16px",
+                background: "#fff3cd",
+                borderRadius: "40px",
+                color: "#856404",
+              }}>
+                <span style={{ fontSize: "1.2rem" }}>💡</span>
+                <span style={{ fontSize: "0.9rem" }}>
                   Tip: Be as specific as possible. Include landmarks or nearby intersections.
                 </span>
               </div>
@@ -334,59 +631,130 @@ function ReportIssue() {
 
           {/* Step 3: Contact Info */}
           {currentStep === 3 && (
-            <div className="form-step fade-in">
-              <h3 className="step-title">How can we reach you for updates?</h3>
+            <div style={{
+              animation: "fadeIn 0.3s ease",
+            }}>
+              <h3 style={{
+                fontSize: "1.3rem",
+                fontWeight: "600",
+                color: "#0f172a",
+                margin: "0 0 24px 0",
+              }}>How can we reach you?</h3>
               
-              <div className="contact-info-note">
-                <p>Your contact information will only be used for updates about this issue.</p>
+              <div style={{
+                background: "#e6f7ff",
+                padding: "16px",
+                borderRadius: "16px",
+                marginBottom: "24px",
+              }}>
+                <p style={{
+                  margin: 0,
+                  color: "#0066cc",
+                  fontSize: "0.95rem",
+                }}>
+                  Your contact information will only be used for updates about this issue.
+                </p>
               </div>
 
               {/* Name */}
-              <div className="form-group">
-                <label htmlFor="contactName">Your Name</label>
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>Your Name</label>
                 <input
                   type="text"
-                  id="contactName"
                   name="contactName"
-                  className="form-input"
-                  placeholder="John Doe"
                   value={formData.contactName}
                   onChange={handleInputChange}
+                  placeholder="John Doe"
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
+                    fontSize: "1rem",
+                    outline: "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                  onBlur={(e) => e.target.style.borderColor = "#e2e8f0"}
                 />
               </div>
 
               {/* Email */}
-              <div className="form-group">
-                <label htmlFor="contactEmail">Email Address</label>
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>Email Address</label>
                 <input
                   type="email"
-                  id="contactEmail"
                   name="contactEmail"
-                  className="form-input"
-                  placeholder="john@example.com"
                   value={formData.contactEmail}
                   onChange={handleInputChange}
+                  placeholder="john@example.com"
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
+                    fontSize: "1rem",
+                    outline: "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                  onBlur={(e) => e.target.style.borderColor = "#e2e8f0"}
                 />
               </div>
 
               {/* Phone */}
-              <div className="form-group">
-                <label htmlFor="contactPhone">Phone Number (Optional)</label>
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  marginBottom: "8px",
+                }}>Phone Number (Optional)</label>
                 <input
                   type="tel"
-                  id="contactPhone"
                   name="contactPhone"
-                  className="form-input"
-                  placeholder="(555) 123-4567"
                   value={formData.contactPhone}
                   onChange={handleInputChange}
+                  placeholder="(555) 123-4567"
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
+                    fontSize: "1rem",
+                    outline: "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                  onBlur={(e) => e.target.style.borderColor = "#e2e8f0"}
                 />
               </div>
 
               {/* Privacy Note */}
-              <div className="privacy-note">
-                <span className="privacy-icon">🔒</span>
-                <span className="privacy-text">
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "12px 16px",
+                background: "#f1f5f9",
+                borderRadius: "40px",
+                color: "#475569",
+              }}>
+                <span style={{ fontSize: "1.2rem" }}>🔒</span>
+                <span style={{ fontSize: "0.9rem" }}>
                   Your information is secure and will only be used for issue-related updates.
                 </span>
               </div>
@@ -394,38 +762,102 @@ function ReportIssue() {
           )}
 
           {/* Form Actions */}
-          <div className="form-actions">
+          <div style={{
+            display: "flex",
+            gap: "12px",
+            marginTop: "32px",
+            paddingTop: "24px",
+            borderTop: "1px solid #f1f5f9",
+          }}>
             {currentStep > 1 && (
-              <button 
-                type="button" 
-                className="btn btn-secondary"
+              <button
+                type="button"
                 onClick={handlePrev}
                 disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: "14px 24px",
+                  background: "white",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "40px",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "#475569",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.borderColor = "#cbd5e1";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "white";
+                  e.currentTarget.style.borderColor = "#e2e8f0";
+                }}
               >
                 ← Back
               </button>
             )}
             
             {currentStep < 3 ? (
-              <button 
-                type="button" 
-                className="btn btn-primary"
+              <button
+                type="button"
                 onClick={handleNext}
                 disabled={loading}
+                style={{
+                  flex: currentStep > 1 ? 1 : "none",
+                  width: currentStep === 1 ? "100%" : "auto",
+                  padding: "14px 32px",
+                  background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                  border: "none",
+                  borderRadius: "40px",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "white",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.02)";
+                  e.currentTarget.style.boxShadow = "0 10px 20px -10px rgba(59,130,246,0.5)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
               >
                 Continue →
               </button>
             ) : (
-              <button 
-                type="submit" 
-                className="btn btn-primary btn-large"
+              <button
+                type="submit"
                 disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: "14px 32px",
+                  background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                  border: "none",
+                  borderRadius: "40px",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "white",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  transition: "all 0.2s ease",
+                }}
               >
                 {loading ? (
-                  <>
-                    <span className="loading-spinner-small"></span>
+                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                    <span style={{
+                      width: "20px",
+                      height: "20px",
+                      border: "2px solid white",
+                      borderTopColor: "transparent",
+                      borderRadius: "50%",
+                      animation: "spin 1s linear infinite",
+                    }} />
                     Submitting...
-                  </>
+                  </span>
                 ) : (
                   'Submit Report'
                 )}
@@ -435,12 +867,41 @@ function ReportIssue() {
 
           {/* Error Message */}
           {errors.submit && (
-            <div className="submit-error">
-              ⚠️ {errors.submit}
+            <div style={{
+              marginTop: "20px",
+              padding: "12px 16px",
+              background: "#fee2e2",
+              borderRadius: "12px",
+              color: "#b91c1c",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}>
+              <span>⚠️</span>
+              <span>{errors.submit}</span>
             </div>
           )}
         </form>
       </div>
+
+      {/* Animations */}
+      <style>
+        {`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 }

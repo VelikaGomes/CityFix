@@ -1,26 +1,53 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
-import ReportIssue from "./pages/ReportIssue";
-import AdminDashboard from "./pages/AdminDashboard";
-import IssueDetails from "./pages/IssueDetails";
-import MapView from "./components/MapView"; // Import MapView
-import "./App.css";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext.jsx';
+import { IssueProvider } from './context/IssueContext.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import Navbar from './components/Navbar.jsx';
+
+// Pages
+import Home from './pages/Home.jsx';
+import Login from './pages/Login.jsx';
+import Signup from './pages/Signup.jsx';
+import ReportIssue from './pages/ReportIssue.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import IssueDetails from './pages/IssueDetails.jsx';
+import MapView from './pages/MapView.jsx';
+import ViewIssues from './pages/ViewIssues.jsx';
 
 function App() {
   return (
-    <Router>
-      <Navbar />
-      <main className="app-container"> {/* Add container for padding */}
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/report" element={<ReportIssue />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/issue/:id" element={<IssueDetails />} />
-          <Route path="/map" element={<MapView />} /> {/* Add Map route */}
-        </Routes>
-      </main>
-    </Router>
+    <AuthProvider>
+      <IssueProvider>
+        <Router>
+          <div className="app">
+            <Navbar />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/map" element={<MapView />} />
+              <Route path="/issues" element={<ViewIssues />} />
+              <Route path="/issue/:id" element={<IssueDetails />} />
+              
+              {/* Protected Routes - Require Login */}
+              <Route path="/report" element={
+                <ProtectedRoute>
+                  <ReportIssue />
+                </ProtectedRoute>
+              } />
+              
+              {/* Admin Only Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute adminOnly={true}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </div>
+        </Router>
+      </IssueProvider>
+    </AuthProvider>
   );
 }
 
