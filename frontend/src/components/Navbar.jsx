@@ -1,17 +1,27 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
   const navLinks = [
     { path: "/", label: "Home", icon: "🏠" },
     { path: "/report", label: "Report Issue", icon: "📢" },
-    { path: "/admin", label: "Admin", icon: "⚙️" },
+    ...(user?.role === 'admin' ? [{ path: "/admin", label: "Admin", icon: "⚙️" }] : []),
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setShowUserMenu(false);
+  };
 
   return (
     <nav style={{
@@ -101,67 +111,229 @@ function Navbar() {
           display: "flex",
           alignItems: "center",
           gap: "16px",
+          position: "relative",
         }}>
-          <button style={{
-            background: "none",
-            border: "none",
-            fontSize: "1.2rem",
-            cursor: "pointer",
-            padding: "8px",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-            color: "#64748b",
-            transition: "background 0.2s ease",
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
-          onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-          >
-            <span>🔔</span>
-            <span style={{
-              position: "absolute",
-              top: "4px",
-              right: "4px",
-              width: "8px",
-              height: "8px",
-              background: "#ef4444",
-              borderRadius: "50%",
-              border: "2px solid white",
-            }} />
-          </button>
-          
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "4px 8px 4px 4px",
-            borderRadius: "40px",
-            background: "#f8fafc",
-            cursor: "pointer",
-          }}>
+          {user ? (
+            <>
+              <button style={{
+                background: "none",
+                border: "none",
+                fontSize: "1.2rem",
+                cursor: "pointer",
+                padding: "8px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+                color: "#64748b",
+                transition: "background 0.2s ease",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+              >
+                <span>🔔</span>
+                <span style={{
+                  position: "absolute",
+                  top: "4px",
+                  right: "4px",
+                  width: "8px",
+                  height: "8px",
+                  background: "#ef4444",
+                  borderRadius: "50%",
+                  border: "2px solid white",
+                }} />
+              </button>
+              
+              <div 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "4px 8px 4px 4px",
+                  borderRadius: "40px",
+                  background: "#f8fafc",
+                  cursor: "pointer",
+                  position: "relative",
+                }}
+              >
+                <div style={{
+                  width: "32px",
+                  height: "32px",
+                  background: user?.role === 'admin' 
+                    ? "linear-gradient(135deg, #ef4444, #dc2626)" 
+                    : "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "1rem",
+                }}>
+                  {user?.name?.[0] || 'A'}
+                </div>
+                <span style={{
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#0f172a",
+                }}>
+                  {user?.name || 'Admin'}
+                </span>
+                <span style={{
+                  fontSize: "0.8rem",
+                  color: "#64748b",
+                  marginLeft: "4px",
+                }}>▼</span>
+              </div>
+
+              {/* Dropdown Menu */}
+              {showUserMenu && (
+                <div style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  marginTop: "8px",
+                  background: "white",
+                  borderRadius: "16px",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
+                  border: "1px solid #f1f5f9",
+                  minWidth: "200px",
+                  zIndex: 1000,
+                  animation: "slideDown 0.2s ease",
+                }}>
+                  <div style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}>
+                    <p style={{
+                      margin: "0 0 4px 0",
+                      fontSize: "0.9rem",
+                      fontWeight: "600",
+                      color: "#0f172a",
+                    }}>{user?.name}</p>
+                    <p style={{
+                      margin: 0,
+                      fontSize: "0.8rem",
+                      color: "#64748b",
+                    }}>{user?.email}</p>
+                    {user?.role === 'admin' && (
+                      <span style={{
+                        display: "inline-block",
+                        marginTop: "4px",
+                        padding: "2px 8px",
+                        background: "#fee2e2",
+                        color: "#b91c1c",
+                        borderRadius: "30px",
+                        fontSize: "0.7rem",
+                        fontWeight: "600",
+                      }}>ADMIN</span>
+                    )}
+                  </div>
+                  
+                  {user?.role === 'admin' && (
+                    <Link to="/admin" style={{
+                      display: "block",
+                      padding: "12px 16px",
+                      textDecoration: "none",
+                      color: "#0f172a",
+                      fontSize: "0.9rem",
+                      transition: "background 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "white"}
+                    onClick={() => setShowUserMenu(false)}>
+                      ⚙️ Admin Dashboard
+                    </Link>
+                  )}
+                  
+                  <Link to="/profile" style={{
+                    display: "block",
+                    padding: "12px 16px",
+                    textDecoration: "none",
+                    color: "#0f172a",
+                    fontSize: "0.9rem",
+                    transition: "background 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "white"}
+                  onClick={() => setShowUserMenu(false)}>
+                    👤 My Profile
+                  </Link>
+                  
+                  <Link to="/settings" style={{
+                    display: "block",
+                    padding: "12px 16px",
+                    textDecoration: "none",
+                    color: "#0f172a",
+                    fontSize: "0.9rem",
+                    transition: "background 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "white"}
+                  onClick={() => setShowUserMenu(false)}>
+                    ⚙️ Settings
+                  </Link>
+                  
+                  <div style={{
+                    borderTop: "1px solid #f1f5f9",
+                    margin: "4px 0",
+                  }} />
+                  
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "none",
+                      background: "none",
+                      textAlign: "left",
+                      fontSize: "0.9rem",
+                      color: "#ef4444",
+                      cursor: "pointer",
+                      transition: "background 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#fef2f2"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                  >
+                    <span>🚪</span>
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
             <div style={{
-              width: "32px",
-              height: "32px",
-              background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-              borderRadius: "50%",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontSize: "1rem",
+              gap: "8px",
             }}>
-              A
+              <Link to="/login" style={{
+                padding: "8px 16px",
+                borderRadius: "30px",
+                textDecoration: "none",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#3b82f6",
+                background: "#eff6ff",
+              }}>
+                Login
+              </Link>
+              <Link to="/signup" style={{
+                padding: "8px 16px",
+                borderRadius: "30px",
+                textDecoration: "none",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "white",
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+              }}>
+                Sign Up
+              </Link>
             </div>
-            <span style={{
-              fontSize: "0.9rem",
-              fontWeight: "500",
-              color: "#0f172a",
-            }}>
-              Admin
-            </span>
-          </div>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -226,6 +398,7 @@ function Navbar() {
           padding: "16px",
           boxShadow: "0 10px 20px rgba(0,0,0,0.05)",
           animation: "slideDown 0.3s ease",
+          zIndex: 999,
         }}>
           {navLinks.map((link) => (
             <Link
@@ -250,6 +423,113 @@ function Navbar() {
               <span>{link.label}</span>
             </Link>
           ))}
+          
+          {user ? (
+            <>
+              <div style={{
+                borderTop: "1px solid #f1f5f9",
+                margin: "16px 0",
+              }} />
+              
+              <div style={{
+                padding: "14px 16px",
+                background: "#f8fafc",
+                borderRadius: "12px",
+                marginBottom: "8px",
+              }}>
+                <p style={{
+                  margin: "0 0 4px 0",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  color: "#0f172a",
+                }}>{user?.name}</p>
+                <p style={{
+                  margin: 0,
+                  fontSize: "0.8rem",
+                  color: "#64748b",
+                }}>{user?.email}</p>
+                {user?.role === 'admin' && (
+                  <span style={{
+                    display: "inline-block",
+                    marginTop: "4px",
+                    padding: "2px 8px",
+                    background: "#fee2e2",
+                    color: "#b91c1c",
+                    borderRadius: "30px",
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                  }}>ADMIN</span>
+                )}
+              </div>
+              
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  padding: "14px 16px",
+                  border: "none",
+                  background: "transparent",
+                  textAlign: "left",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "#ef4444",
+                  cursor: "pointer",
+                  borderRadius: "12px",
+                }}
+              >
+                <span style={{ fontSize: "1.2rem" }}>🚪</span>
+                <span>Logout</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{
+                borderTop: "1px solid #f1f5f9",
+                margin: "16px 0",
+              }} />
+              
+              <Link
+                to="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{
+                  display: "block",
+                  padding: "14px 16px",
+                  textDecoration: "none",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "#3b82f6",
+                  background: "#eff6ff",
+                  borderRadius: "12px",
+                  marginBottom: "8px",
+                }}
+              >
+                Login
+              </Link>
+              
+              <Link
+                to="/signup"
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{
+                  display: "block",
+                  padding: "14px 16px",
+                  textDecoration: "none",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                  color: "white",
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  borderRadius: "12px",
+                }}
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
       )}
 

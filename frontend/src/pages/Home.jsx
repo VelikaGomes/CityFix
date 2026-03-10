@@ -2,6 +2,18 @@ import { useEffect } from "react";
 import IssueCard from "../components/IssueCard";
 import { Link } from "react-router-dom";
 import { useIssues } from '../context/IssueContext';
+import { 
+  Home as HomeIcon,
+  Map,
+  Plus,
+  Clock,
+  CheckCircle,
+  TrendingUp,
+  FileText,
+  ArrowRight,
+  Building,
+  MapPin
+} from "../components/Icons";
 
 function Home() {
   const { issues, loading, refreshIssues } = useIssues();
